@@ -1,0 +1,970 @@
+function doPost(e) {
+  var ssId = "xxxxxxxxxxxxxxxxxxxxxxx"; //id sheet
+
+  var ss = SpreadsheetApp.openById(ssId);
+  var sheetData1 = ss.getSheetByName("data1"); //ชื่อชีต
+  var sheetUsers = ss.getSheetByName("users"); //ชื่อชีต
+  var sheetUsers1 = ss.getSheetByName("acc1"); //ชื่อชีต
+  var sheettest = ss.getSheetByName("แผ่น4"); //ชื่อชีต
+  
+
+  //use BetterLog
+  Logger = BetterLog.useSpreadsheet(ssId);
+
+  //Logger.log("Hello from BetterLog :)");
+
+  var requestJSON = e.postData.contents;
+
+  Logger.log("requestJson :> "+requestJSON);
+
+  var requestObj = JSON.parse(requestJSON).events[0];
+  
+  var token = requestObj.replyToken;
+ Logger.log(requestObj.type);
+ 
+ //เริ่มงื่อนไขต่างๆ ที่จะให้ตอบกลับ
+ 
+ //ส่วนการแสดงผลหลังจากส่ง latlon
+    if (requestObj.type === "message" && requestObj.message["type"]==="location"){
+                var lat = requestObj.message["latitude"]
+                var lon = requestObj.message["longitude"]
+                var add = requestObj.message["address"]
+                var title = requestObj.message["title"]
+                if (title === ""){title = "add"}
+//                var latlon = lat+","+lon+"  "+add
+
+                getWeatherData(lat,lon,add,title,token);
+    }
+    
+  //ส่วนการแสดงผลหลังจากส่ง datepicker  
+    if (requestObj.type === "postback"){
+    var event = requestObj.postback.params["datetime"]    
+    replyMessagedate(token,event)}
+    
+
+  var typemsg = requestObj.message.type;  
+  Logger.log("typemsg =>" +typemsg)
+  
+  var userMessage = requestObj.message.text;
+  var userId = requestObj.source.userId;
+  var userProfiles = getUserProfiles(userId);
+  var m1 = userMessage.split(" ");
+  Logger.log("UserMesage: > "+userMessage);
+
+
+  
+    if (userId != " ") {
+
+    
+                          if (m1[0].match(/โอน/)){ 
+                              var lastRow = sheetData1.getRange("K1").getValue();
+                                  sheetData1.getRange(lastRow + 1, 1).setValue(userId);
+                                  var username = sheetData1.getRange(lastRow + 1, 2).setValue(userProfiles[0]).getDisplayValue();
+                                  sheetData1.getRange(lastRow + 1, 3).setValue(userProfiles[1]);
+                                  sheetData1.getRange(lastRow + 1, 4).setValue(new Date());
+                                  var date = sheetData1.getRange(lastRow + 1, 4).getDisplayValue()
+                                      var income = sheetData1.getRange(lastRow + 1, 5).setValue(m1[1]).getDisplayValue();
+                                      var msg0 = sheetData1.getRange(lastRow + 1, 11).setValue(userMessage);                                      
+                                      var header = sheetData1.getRange(1, 1, 1, sheetData1.getLastColumn()).getValues();
+//                                      Logger.log(header)
+                                      var data = sheetData1.getRange(lastRow + 1, 1, 1, sheetData1.getLastColumn()).getValues()[0];
+                                      var sheetNew = ss.getSheetByName(username);
+                                      var controw = "=counta(A2"+":A)+1"
+
+                                      if(sheetNew==null){
+                                        sheetNew = ss.insertSheet(username);
+                                        sheetNew.getRange(1, 1, 1, 11).setValues(header);
+                                      }
+                                      sheetNew.appendRow(data);
+                                      var lastRow1 = sheetNew.getRange("K1").setFormula(controw)
+                                      var lastRow2 = sheetNew.getRange("K1").getValue()
+                                      var formularincome1 = "=sum(E$2"+":E"+(lastRow2)+")"
+                                      var formularpay1 = "=sum(F$2"+":F"+(lastRow2)+")"
+                                      var formularbalance1 = "=G"+lastRow2 + "-" + "H"+lastRow2
+                                      
+                                      sheetNew.getRange(lastRow2 , 7).setFormula(formularincome1)
+                                      sheetNew.getRange(lastRow2 , 8).setFormula(formularpay1)
+                                      sheetNew.getRange(lastRow2 , 9).setFormula(formularbalance1)
+                                      var balance = sheetNew.getRange(lastRow2, 9).getValue()
+                                      
+                                      var replyText = "1"+userMessage;
+                                      return replyMessage(token, replyText, balance, income, date)
+                                      
+                                      
+                            }else if (m1[0].match(/จ่าย/)){
+                                  var lastRow = sheetData1.getRange("K1").getValue();
+                                  sheetData1.getRange(lastRow + 1, 1).setValue(userId);
+                                  var username = sheetData1.getRange(lastRow + 1, 2).setValue(userProfiles[0]).getDisplayValue();
+                                  sheetData1.getRange(lastRow + 1, 3).setValue(userProfiles[1]);
+                                  sheetData1.getRange(lastRow + 1, 4).setValue(new Date());
+                                  var date = sheetData1.getRange(lastRow + 1, 4).getDisplayValue()
+                                      var pay = sheetData1.getRange(lastRow + 1, 6).setValue(m1[1]).getDisplayValue();
+                                      var msg0 = sheetData1.getRange(lastRow + 1, 11).setValue(userMessage);
+//                                      var formularincome = "=sum(E$2"+":E"+(lastRow+1)+")"
+//                                  sheetData1.getRange(lastRow + 1, 7).setFormula(formularincome)
+//                                      var formularpay = "=sum(F$2"+":F"+(lastRow+1)+")"
+//                                  sheetData1.getRange(lastRow + 1, 7).setFormula(formularincome)
+//                                  sheetData1.getRange(lastRow + 1, 8).setFormula(formularpay)
+//                                      var balance = sheetData1.getRange(lastRow + 1, 9).getDisplayValue();
+                                      var header = sheetData1.getRange(1, 1, 1, sheetData1.getLastColumn()).getValues();
+                                      var data = sheetData1.getRange(lastRow + 1, 1, 1, sheetData1.getLastColumn()).getValues()[0];
+                                      var sheetNew = ss.getSheetByName(username);
+                                      var controw = "=counta(A2"+":A)+1"
+
+                                      if(sheetNew==null){
+                                        sheetNew = ss.insertSheet(username);
+                                        sheetNew.getRange(1, 1, 1, 11).setValues(header);
+                                      }
+                                      sheetNew.appendRow(data);
+                                      var lastRow1 = sheetNew.getRange("K1").setFormula(controw)
+                                      var lastRow2 = sheetNew.getRange("K1").getValue()
+                                      var formularincome1 = "=sum(E$2"+":E"+(lastRow2)+")"
+                                      var formularpay1 = "=sum(F$2"+":F"+(lastRow2)+")"
+                                      var formularbalance1 = "=G"+lastRow2 + "-" + "H"+lastRow2
+                                      sheetNew.getRange(lastRow2 , 7).setFormula(formularincome1)
+                                      sheetNew.getRange(lastRow2 , 8).setFormula(formularpay1)
+                                      sheetNew.getRange(lastRow2 , 9).setFormula(formularbalance1)
+                                      var balance = sheetNew.getRange(lastRow2, 9).getValue()
+                                      
+                                      var replyText = m1[0];
+                                      return replyMessageEcc(token, username, balance, replyText, pay, date); 
+                            
+                            }else if (m1[0].match(/menu/)){
+                                      
+                                      var textre = sheettest.getRange(sheettest.getLastRow() , 3).getValue()
+                                      var money = sheettest.getRange(sheettest.getLastRow() , 2).getValue()
+
+                                      return replyMessagetest(token); 
+                            
+                            }
+
+                              return replyMessagedate(token,event);
+                    
+//                                   var replyText = userMessage;
+//                                 //var replyText = JSON.stringify(requestObj);
+//                                 xd = "https://sv1.picz.in.th/images/2020/08/27/Ee8Hiu.png"
+//                                 return replyMessage(token, replyText);
+                      }
+                                                  
+                      }
+
+
+// เริ่มต้นการ reply ในรูปแบบต่างๆ 
+ function replyMessage(token, replyText, balance, income, date) {
+
+   var url = "https://api.line.me/v2/bot/message/reply";
+   var chanalaccesstoken = "xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx"
+   var lineHeader = {
+     "Content-Type": "application/json",
+     "Authorization": 'Bearer ' + chanalaccesstoken,
+   };
+
+   var postData = {
+     "replyToken" : token,
+     "messages" : [{
+          "type": "flex",
+          "altText": "รับเงิน",
+          "contents": {
+  "type": "bubble",
+  "direction": "ltr",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#1617EEFF",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://drive.google.com/uc?id=1Rk1cZOXfnnZ93kfRTaPETAiXHjpmaNnO",
+            "size": "md"
+          },
+          {
+            "type": "text",
+            "text": "รับเงิน",
+            "weight": "bold",
+            "size": "3xl",
+            "color": "#E1B20BFF",
+            "align": "center",
+            "gravity": "center",
+            "style": "normal",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#54A0EAFF",
+    "contents": [
+      {
+        "type": "text",
+        "text": "วันที่ทำรายการ "+date,
+        "weight": "bold",
+        "size": "xl",
+        "color": "#EC23ECFF",
+        "align": "center",
+        "contents": []
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "รับเงินโอน",
+            "size": "lg",
+            "color": "#F7F554FF",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": income+" บาท",
+            "size": "lg",
+            "color": "#F7F554FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "horizontal",
+    "backgroundColor": "#D315BCFF",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "ยอดคงเหลือ",
+            "color": "#F5E8E8FF",
+            "align": "start",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": balance+" บาท",
+            "weight": "bold",
+            "color": "#F5E8E8FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  }
+}
+ }]
+   };
+
+   var options = {
+     "method" : "POST",
+     "headers" : lineHeader,
+     "payload" : JSON.stringify(postData)
+   };
+
+   try {
+     var response = UrlFetchApp.fetch(url, options);
+   }
+  
+   catch (error) {
+     Logger.log(error.name + "：" + error.message);
+     return;
+   }
+    
+   if (response.getResponseCode() === 200) {
+     Logger.log("Sending message completed.");
+   }
+ }
+
+function replyMessageEcc(token, username, balance, replyText, pay, date){
+
+   var url = "https://api.line.me/v2/bot/message/reply";
+   var chanalaccesstoken = ""xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx""
+   var lineHeader = {
+     "Content-Type": "application/json",
+     "Authorization": 'Bearer ' + chanalaccesstoken,
+   };
+
+   var postData = {
+     "replyToken" : token,
+     "messages" : [{     
+          "type": "flex",
+          "altText": "Flex Message",
+          "contents": {
+  "type": "bubble",
+  "direction": "ltr",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#DE4B63FF",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://drive.google.com/uc?id=1rsryfPf82g3YHL7SL1qxkNY3XZObKJRX",
+            "size": "md"
+          },
+          {
+            "type": "text",
+            "text": "จ่ายเงิน",
+            "weight": "bold",
+            "size": "3xl",
+            "color": "#ECC9D0FF",
+            "align": "center",
+            "gravity": "center",
+            "style": "normal",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#E7BFADFF",
+    "contents": [
+      {
+        "type": "text",
+        "text": "วันที่ทำรายการ "+date,
+        "weight": "bold",
+        "size": "xl",
+        "color": "#EC23ECFF",
+        "align": "center",
+        "contents": []
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": replyText,
+            "size": "lg",
+            "color": "#F51355FF",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": pay+" บาท",
+            "size": "lg",
+            "color": "#F51355FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "horizontal",
+    "backgroundColor": "#DE4B63FF",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "ยอดคงเหลือ",
+            "size": "lg",
+            "color": "#F5E8E8FF",
+            "align": "start",
+            "margin": "xs",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": balance+" บาท",
+            "weight": "bold",
+            "size": "lg",
+            "color": "#F5E8E8FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  }
+}
+}]};
+
+   var options = {
+     "method" : "POST",
+     "headers" : lineHeader,
+     "payload" : JSON.stringify(postData)
+   };
+
+   try {
+     var response = UrlFetchApp.fetch(url, options);
+   }
+  
+   catch (error) {
+     Logger.log(error.name + "：" + error.message);
+     return;
+   }
+    
+    if (response.getResponseCode() === 200) {
+      Logger.log("Sending message completed.");
+    }
+ }
+ 
+//quick reply
+ function replyMessagetest(token) {
+
+   var url = "https://api.line.me/v2/bot/message/reply";
+   var chanalaccesstoken = ""xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx""
+   var lineHeader = {
+     "Content-Type": "application/json",
+     "Authorization": 'Bearer ' + chanalaccesstoken,
+   };
+
+   var postData = {
+     "replyToken" : token,
+     "messages" : [
+
+    {
+      "type": "text",
+      "text": "Hello Quick Reply!",
+      "quickReply": {
+        "items": [
+          {
+            "type": "action",
+            "imageUrl": "https://media.giphy.com/media/W3aIJfChMztg0cWhtd/giphy.gif",
+            "action": {
+              "type": "uri",
+              "label": "liff type",
+              "uri": "https://liff.line.me/1654773851-LoyvVgAq"
+            }
+          },
+          {
+            "imageUrl": "https://media.giphy.com/media/hUABECLfwGq5jgMyeE/giphy.gif",
+            "type": "action",
+            "action": {
+              "type": "uri",
+              "label": "ฝากถอน",
+              "uri": "https://liff.line.me/1654773851-NGjbkGWe"
+            }
+          },
+          {
+            "type": "action",
+            "action": {
+              "type": "cameraRoll",
+              "label": "Camera Roll"
+            }
+          },
+          {
+            "type": "action",
+            "action": {
+              "type": "camera",
+              "label": "Camera"
+            }
+          },
+          {
+            "type": "action",
+            "action": {
+              "type": "location",
+              "label": "Location"
+            }
+          },
+          {
+            "type": "action",
+            "imageUrl": "https://cdn1.iconfinder.com/data/icons/mix-color-3/502/Untitled-1-512.png",
+            "action": {
+              "type": "message",
+              "label": "Message",
+              "text": "Hello World!"
+            }
+            },
+          {
+            "type": "action",
+            "action": {
+              "type": "postback",
+              "label": "Postback",
+              "data": "action=buy&itemid=123",
+              "displayText": "Buy"
+            }
+            },
+          {
+            "type": "action",
+            "imageUrl": "https://icla.org/wp-content/uploads/2018/02/blue-calendar-icon.png",
+            "action": {
+              "type": "datetimepicker",
+              "label": "Datetime Picker",
+              "data": "storeId=12345",
+              "mode": "datetime",
+              "initial": "2018-08-10t00:00",
+              "max": "2018-12-31t23:59",
+              "min": "2018-08-01t00:00"
+            }            
+          }
+        ]
+      }
+    }
+      ]}     
+
+   var options = {
+     "method" : "POST",
+     "headers" : lineHeader,
+     "payload" : JSON.stringify(postData)
+   };
+
+   try {
+     var response = UrlFetchApp.fetch(url, options);
+   }
+  
+   catch (error) {
+     Logger.log(error.name + "：" + error.message);
+     return;
+   }
+    
+   if (response.getResponseCode() === 200) {
+     Logger.log("Sending message completed.");
+   }
+ }
+
+function replyMessagedate(token,event){
+   var url = "https://api.line.me/v2/bot/message/reply";
+   var chanalaccesstoken = ""xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx""
+   var lineHeader = {
+     "Content-Type": "application/json",
+     "Authorization": 'Bearer ' + chanalaccesstoken,
+   };
+
+   var postData = {
+     "replyToken" : token,
+     "messages" : [
+
+    {
+      "type": "text",
+      "text": "Hello !"+event
+
+    }
+      ]}     
+
+   var options = {
+     "method" : "POST",
+     "headers" : lineHeader,
+     "payload" : JSON.stringify(postData)
+   };
+
+   try {
+     var response = UrlFetchApp.fetch(url, options);
+   }
+  
+   catch (error) {
+     Logger.log(error.name + "：" + error.message);
+     return;
+   }
+    
+   if (response.getResponseCode() === 200) {
+     Logger.log("Sending message completed.");
+   }
+ }
+ 
+ function replyMessagemap(datex,HourMintue,lat,lon,add,title,temp,maxTemperature,minTemperature,rh,rain,weatherConditionText,token){
+   var url = "https://api.line.me/v2/bot/message/reply";
+   var chanalaccesstoken = ""xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx""
+   var lineHeader = {
+     "Content-Type": "application/json",
+     "Authorization": 'Bearer ' + chanalaccesstoken,
+   };
+   
+   var a1 = lat
+
+   var postData = {
+     "replyToken" : token,
+     "messages" : [{     
+          "type": "flex",
+          "altText": "Flex Message",
+          "contents": {
+  "type": "bubble",
+  "direction": "ltr",
+  "header": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#C52BC5FF",
+    "contents": [
+      {
+        "type": "text",
+        "text": "สภาพอากาศปัจจุบัน",
+        "weight": "bold",
+        "color": "#ECEEF3FF",
+        "align": "center",
+        "contents": []
+      },
+      {
+        "type": "text",
+        "text": "@ "+title+" "+add,
+        "color": "#ECEEF3FF",
+        "wrap": true,
+        "contents": []
+      },
+      {
+        "type": "text",
+        "text": "location :"+lat+","+lon,
+        "size": "sm",
+        "color": "#ECEEF3FF",
+        "contents": []
+      }
+    ]
+  },
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "backgroundColor": "#FCFCFCFF",
+    "contents": [
+      {
+        "type": "text",
+        "text": ""+weatherConditionText,
+        "weight": "bold",
+        "color": "#13821BFF",
+        "align": "center",
+        "contents": []
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "image",
+            "url": "https://drive.google.com/uc?id=1OP28ojRtT4P1khyR_8I05fg_AQt1553a",
+            "gravity": "top",
+            "size": "xs"
+          },
+          {
+            "type": "text",
+            "text": ""+temp+"°C",
+            "weight": "bold",
+            "size": "xl",
+            "color": "#108E2AFF",
+            "align": "end",
+            "gravity": "center",
+            "contents": []
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "margin": "none",
+        "contents": [
+          {
+            "type": "text",
+            "text": "สูงสุด/ต่ำสุด",
+            "color": "#032009FF",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": ""+maxTemperature+"/"+minTemperature,
+            "color": "#032009FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "ความชื้นสัมพัทธ์",
+            "color": "#032009FF",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": ""+rh+" %",
+            "color": "#032009FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "ปริมาณฝน(mm)",
+            "color": "#032009FF",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": ""+rain+" mm",
+            "color": "#032009FF",
+            "align": "end",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "type": "box",
+    "layout": "horizontal",
+    "backgroundColor": "#1A24E3FF",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": ""+datex+" "+HourMintue,
+            "color": "#F7EFEFFF",
+            "align": "start",
+            "contents": []
+          },
+          {
+            "type": "text",
+            "text": "Develop By Gukkghu",
+            "size": "xxs",
+            "color": "#F7EFEFFF",
+            "align": "end",
+            "gravity": "bottom",
+            "contents": []
+          }
+        ]
+      }
+    ]
+  }
+}
+}]};
+
+   var options = {
+     "method" : "POST",
+     "headers" : lineHeader,
+     "payload" : JSON.stringify(postData)
+   };
+
+   try {
+     var response = UrlFetchApp.fetch(url, options);
+   }
+  
+   catch (error) {
+     Logger.log(error.name + "：" + error.message);
+     return;
+   }
+    
+   if (response.getResponseCode() === 200) {
+     Logger.log("Sending message completed.");
+   }
+ }
+ 
+
+
+function getUserProfiles(userId) {
+  var url = "https://api.line.me/v2/bot/profile/" + userId;
+  var chanalaccesstoken = ""xxxxxxxxxx ใส่ Access Tokenxxxxxxxxxxxxxxxxxxx""
+  var lineHeader = {
+    "Content-Type": "application/json",
+    "Authorization": 'Bearer ' + chanalaccesstoken,
+  };
+  
+  var options = {
+    "method" : "GET",
+    "headers" : lineHeader
+  };
+  
+  var responseJson = UrlFetchApp.fetch(url, options);
+  
+  Logger.log("User Profiles Response: " + responseJson);
+  
+  var displayName = JSON.parse(responseJson).displayName;
+  var pictureUrl = JSON.parse(responseJson).pictureUrl;
+  var status = JSON.parse(responseJson).statusMessage;
+  
+  
+  
+  return [displayName, pictureUrl, status];
+}
+
+
+function doGet() {
+  return HtmlService.createTemplateFromFile("page").evaluate();
+}
+
+function userclicked(data) {
+     var url = "https://docs.google.com/spreadsheets/d/1kvCMiorrgCjCLIVeRITLPiFDc8V73QyrZIsepgWlkMs/edit#gid=0";
+     var ss = SpreadsheetApp.openByUrl(url);
+     var wss = ss.getSheetByName("แผ่น4");
+    
+     wss.appendRow([data.data1, data.uname, data.e_gender]);
+
+
+//Logger.log(name +"Someon crick the button");
+}
+
+function include(filename){
+    return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+
+
+function getWeatherData(lat,lon,add,title,token) {
+//var lat="13.81987"
+//var lon="100.56819"
+// var url = "https://data.tmd.go.th/nwpapi/v1/forecast/location/daily/at?lat=13.81987&lon=100.56819&fields=tc_max,rh"
+  var urla = "https://data.tmd.go.th/nwpapi/v1/forecast/location/daily/at?lat="+lat+"&lon="+lon+"&fields=tc_max,tc_min,cond,rain,psfc"
+  var url ="https://data.tmd.go.th/nwpapi/v1/forecast/location/hourly/at?lat="+lat+"&lon="+lon+"&fields=tc,rain,cond,rh&hour=8&duration=2"
+  var params = {"method" : "GET",
+                headers: {
+                 "accept": "application/json",
+                 "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjYyMGZmMzhkOGJiYzMxNjk2NjFiNjZlZWM3Y2M2NjQwZmI3NzA5Nzg2YzU5ZTViZmI2Yzg5ZjY0YmM0NWIwNmQyYjAwNTQxYmYxNzBmNzFiIn0.eyJhdWQiOiIyIiwianRpIjoiNjIwZmYzOGQ4YmJjMzE2OTY2MWI2NmVlYzdjYzY2NDBmYjc3MDk3ODZjNTllNWJmYjZjODlmNjRiYzQ1YjA2ZDJiMDA1NDFiZjE3MGY3MWIiLCJpYXQiOjE2MTYwNDA2NTgsIm5iZiI6MTYxNjA0MDY1OCwiZXhwIjoxNjQ3NTc2NjU4LCJzdWIiOiIxMDMzIiwic2NvcGVzIjpbXX0.RvOB6OskG4_lmJYD_ft2JsPt0jFKNZp2DO-bdjTNogxNXhw5JhNqeyTblKtM4A0P5zhxFRMlBwFMB6aw1In1xPdINCbb6xCKEhQbyKhjRjhYoyabboeuGWUOIiebQvoQRjIUKmRBDJB3JJU3V8EGzyTYCfzIDP9LfFIa2XhZcdy-EMlZTcRl5cOybZ9AGuSA_on2oO0mDIB7OOTrDF2kWqk0eRHugd6tM71We5Js8Lqv8F68GrLbKkQY7dyH1YHCykIryyJW-LIjPDD_SMGRnLMMRaEKEvOuwyIyn8nPRa3amk-0sCW963FiQx4snduQ_FpTEnvSQNrUl7MWwoxowSurcql1Os6HUR3w0Df5c7g8CUPrGCnj192fH7h9qneoQOuRQG6WkHxwbPusaTlZvS5zzpByVCcBYLUbMINZ0AUe1HveqfX1E6LvtgDUneC2D7GmOqvZ8eiMsskZOb_a_-rCQPoBwxFmwtb2KNCtvknWZ5N-ffUj-z4RXfovioK92K3ay5t4BcnmT7kuB_vqRo1F5KYQ3XTBXW1S6Z_nML60YH9IHRtjjNKablkH9YWx84WuIqwinOMVBdX8r3-_VsNx4KJhxBWZYEQedtJyRmuqhlfPjDiItNm6gzVlmZe23Y4HH6vOO6SXMUCPcp_L3h--q3Uh9Quu6xdvtngve_s"
+                }
+  };
+  var response = UrlFetchApp.fetch(url, params);
+  var data = JSON.parse(response);
+  
+    var params_a = {"method" : "GET",
+                headers: {
+                 "accept": "application/json",
+                 "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6IjYyMGZmMzhkOGJiYzMxNjk2NjFiNjZlZWM3Y2M2NjQwZmI3NzA5Nzg2YzU5ZTViZmI2Yzg5ZjY0YmM0NWIwNmQyYjAwNTQxYmYxNzBmNzFiIn0.eyJhdWQiOiIyIiwianRpIjoiNjIwZmYzOGQ4YmJjMzE2OTY2MWI2NmVlYzdjYzY2NDBmYjc3MDk3ODZjNTllNWJmYjZjODlmNjRiYzQ1YjA2ZDJiMDA1NDFiZjE3MGY3MWIiLCJpYXQiOjE2MTYwNDA2NTgsIm5iZiI6MTYxNjA0MDY1OCwiZXhwIjoxNjQ3NTc2NjU4LCJzdWIiOiIxMDMzIiwic2NvcGVzIjpbXX0.RvOB6OskG4_lmJYD_ft2JsPt0jFKNZp2DO-bdjTNogxNXhw5JhNqeyTblKtM4A0P5zhxFRMlBwFMB6aw1In1xPdINCbb6xCKEhQbyKhjRjhYoyabboeuGWUOIiebQvoQRjIUKmRBDJB3JJU3V8EGzyTYCfzIDP9LfFIa2XhZcdy-EMlZTcRl5cOybZ9AGuSA_on2oO0mDIB7OOTrDF2kWqk0eRHugd6tM71We5Js8Lqv8F68GrLbKkQY7dyH1YHCykIryyJW-LIjPDD_SMGRnLMMRaEKEvOuwyIyn8nPRa3amk-0sCW963FiQx4snduQ_FpTEnvSQNrUl7MWwoxowSurcql1Os6HUR3w0Df5c7g8CUPrGCnj192fH7h9qneoQOuRQG6WkHxwbPusaTlZvS5zzpByVCcBYLUbMINZ0AUe1HveqfX1E6LvtgDUneC2D7GmOqvZ8eiMsskZOb_a_-rCQPoBwxFmwtb2KNCtvknWZ5N-ffUj-z4RXfovioK92K3ay5t4BcnmT7kuB_vqRo1F5KYQ3XTBXW1S6Z_nML60YH9IHRtjjNKablkH9YWx84WuIqwinOMVBdX8r3-_VsNx4KJhxBWZYEQedtJyRmuqhlfPjDiItNm6gzVlmZe23Y4HH6vOO6SXMUCPcp_L3h--q3Uh9Quu6xdvtngve_s"
+                }
+  };
+  var response_a = UrlFetchApp.fetch(urla, params_a);
+  var data_a = JSON.parse(response_a);
+  
+//Logger.log(data);
+  var strWeek = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"]; //ฟังชก์ชันหาวันในสัปดาห์
+  var strMonthFull = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]; //ฟังก์ชันเดือน
+
+  //var  d = new Date(); //กำหนด d เก็บวันที่วันนี้
+  var today = new Date();
+  var curdate=today.getDate(); // วันที่ 1-31
+  var daycur = today.getDay(); // วัน 0-6 เพื่อไปค้นหาวัน จันทร์-ศุกร์
+  var monthcur=today.getMonth();  //เลขเดือน 0-11 เพื่อไปหา มกราคม-ธัวาคม
+  var yearcur =today.getFullYear()+543; //เพิ่มปี ค.ศ. ให้เป็น พ.ศ.
+  var yearEng =today.getFullYear(); //เพิ่มปี ค.ศ. ให้เป็น พ.ศ.  
+  var MonthId = strMonthFull[monthcur]; //เลือกเดือนภาษาไทย มกราคม-ธันวาคม
+  var Day_List = strWeek[daycur]; //เลือกวันของสัปดาห์
+  
+  var strhour=Utilities.formatDate(new Date(), "Asia/Bangkok", "HH");  // HH 
+  var strMinute=Utilities.formatDate(new Date(), "Asia/Bangkok", "mm"); //m กับ mm 
+  var HourMintue=strhour+':'+strMinute;    
+
+  var DayShow='วัน '+Day_List+' ที่ '+ curdate+' เดือน '+MonthId+' พ.ศ. '+yearcur 
+  var datex= curdate+"/"+monthcur+"/"+yearcur
+  
+  var maxTemperature = data_a.WeatherForecasts[0].forecasts[0].data.tc_max.toFixed(0);
+  var minTemperature = data_a.WeatherForecasts[0].forecasts[0].data.tc_min.toFixed(0);
+  var temp = data.WeatherForecasts[0].forecasts[0].data.tc.toFixed(0); //อุณหภูมิ
+  var rh = data.WeatherForecasts[0].forecasts[0].data.rh.toFixed(0); //ความชื้นสัมพัทธ์
+  var weatherCondition = data.WeatherForecasts[0].forecasts[0].data.cond; //สภาพอากาศโดยรวม
+  var rain = data.WeatherForecasts[0].forecasts[0].data.rain.toFixed(0); //ปริมาณฝน
+
+  Logger.log(maxTemperature)
+  Logger.log(minTemperature)
+  Logger.log(temp)
+  Logger.log(rh)
+  Logger.log(rain)
+  Logger.log(weatherCondition)
+
+
+  var weatherConditionText = "";
+  var imageId = "";
+  var stickerPackageId = "";
+  var stickerId = "";
+  
+  switch (weatherCondition) {
+    case 1 :
+      weatherConditionText = "ท้องฟ้าแจ่มใส (Clear)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "11";
+      break;
+    case 2 :
+      weatherConditionText = "มีเมฆบางส่วน (Partly cloudy)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "15";
+      break;
+    case 3 :
+      weatherConditionText = "เมฆเป็นส่วนมาก (Cloudy)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "101";
+      break;
+    case 4 :
+      weatherConditionText = "มีเมฆมาก (Overcast)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "101";
+      break;
+    case 5 :
+      weatherConditionText = "ฝนตกเล็กน้อย (Light rain)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "100";
+      break;
+    case 6 :
+      weatherConditionText = "ฝนปานกลาง (Moderate rain)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "100";
+      break;
+    case 7 :
+      weatherConditionText = "ฝนตกหนัก (Heavy rain)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "100";
+      break;
+    case 8 :
+      weatherConditionText = "ฝนฟ้าคะนอง (Thunderstorm)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "1";
+      stickerId = "8";
+      break;
+    case 9 :
+      weatherConditionText = "อากาศหนาวจัด (Very cold)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "2";
+      stickerId = "29";
+      break;
+    case 10 :
+      weatherConditionText = "อากาศหนาว (Cold)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "2";
+      stickerId = "29";
+      break;
+    case 11 :
+      weatherConditionText = "อากาศเย็น (Cool)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "2";
+      stickerId = "29";
+      break;
+    case 12 :
+      weatherConditionText = "อากาศร้อนจัด (Very hot)";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "2";
+      stickerId = "27";
+      break;
+    default :
+      weatherConditionText = "ไม่มีสภาพอากาศรายงาน";
+      imageId = "1h5UuYBzzRGnh8DTg8CKJcNCWqA-2eusx";
+      stickerPackageId = "2";
+      stickerId = "38";
+  }
+  //Logger.log(lat+lon+add+temp+maxTemperature+minTemperature+rh+rain+weatherCondition)
+  
+  replyMessagemap(datex,HourMintue,lat,lon,add,title,temp,maxTemperature,minTemperature,rh,rain,weatherConditionText,token)
+//  
+}
